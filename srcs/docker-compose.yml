@@ -1,0 +1,66 @@
+services:
+  mariadb:
+    container_name: mariadb
+    networks:
+      - inception
+    build:
+      context: requirements/mariadb
+    env_file: ../.env
+    volumes:
+      - mariadb:/var/lib/mysql
+    restart: always
+    expose:
+      - "3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "--silent"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+
+  nginx:
+    container_name: nginx
+    volumes:
+      - wordpress:/var/www/html/wordpress
+    networks:
+      - inception
+    depends_on:
+      - wordpress
+    build:
+      context: requirements/nginx
+    ports:
+      - "443:443"
+    restart: always
+
+  wordpress:
+    container_name: wordpress
+    env_file: ../.env
+    volumes:
+      - wordpress:/var/www/html/wordpress
+    networks:
+      - inception
+    build:
+      context: requirements/wordpress
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    restart: always
+    expose:
+      - "9000"
+
+volumes:
+  wordpress:
+    driver_opts:
+      type: 'none' 
+      o: 'bind'
+      device: '/home/madaguen/data/wordpress'
+      
+  mariadb:
+    driver_opts:
+      type: 'none' 
+      o: 'bind'
+      device: '/home/madaguen/data/mariadb'
+
+networks:
+  inception:
+    driver: bridge  
